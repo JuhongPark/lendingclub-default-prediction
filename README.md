@@ -91,6 +91,27 @@ Identifies borrowers who repay 70%+ of their term before defaulting — a patter
 
 ---
 
+## Discussion
+
+### ML
+
+| Observation | Detail |
+|-------------|--------|
+| **Proxy ≠ true objective** | Models ranked by F1 don't necessarily rank the same by portfolio return — the "best" model depends on which metric you trust |
+| **Opaque learned features** | SSAE latent dims (`e0`–`e7`) are useful for prediction but uninterpretable; we keep 14 domain features alongside them as an interpretable anchor |
+| **Undersampling cost** | Rebalancing 83/17 → 50/50 improves default recall but discards majority-class information, risking miscalibration in deployment |
+
+### AI Safety
+
+| Observation | Detail |
+|-------------|--------|
+| **Objective alignment** | Optimizing accuracy led to models that approve bad loans; switching to portfolio return better aligned the model with the actual goal — designing the right objective was harder than building the model |
+| **Interpretability gap** | SHAP explains *which* features matter, but "latent dim e3 was important" tells a borrower or regulator nothing — a practical limit of post-hoc explainability on learned representations |
+| **Shifted incentives** | Moral hazard (Stage 2) models borrowers whose behavior changes over time — repaying normally, then defaulting late — analogous to agents adapting under different incentive structures |
+| **Unresolved fairness** | `addr_state` and `home_ownership` may proxy for protected attributes; optimizing return could deny credit to groups whose higher default rates reflect systemic inequality, not individual risk |
+
+---
+
 ## Quick Start
 
 ```bash
