@@ -2,18 +2,19 @@
 
 > **SNU Fintech AI Course Project**
 >
-> Traditional models optimize for accuracy — but a 90%-accurate model that approves the worst loans still loses money.
-> This project optimizes for **portfolio return**, not just classification metrics.
+> A 90%-accurate default model can still lose money if it approves the worst loans.
+> This project goes beyond classification metrics — it optimizes for **portfolio-level annualized return**.
 
 ---
 
-## What This Does
+## Overview
 
 | | |
 |---|---|
-| **Problem** | Predict loan defaults from 222K Lending Club loans (71 features) |
-| **Core Idea** | Use SSAE to compress noisy features, then classify with ML models |
-| **Key Difference** | Evaluate by **Portfolio Annualized Return**, not just F1/accuracy |
+| **Problem** | Predict loan defaults from 222K Lending Club loans with 71 features |
+| **Approach** | Denoising SSAE for feature compression + ML classifiers |
+| **Innovation** | Custom objective function based on portfolio annualized return |
+| **Stage 2** | Moral hazard detection — late-stage defaults that are costlier to lenders |
 
 ---
 
@@ -34,7 +35,7 @@
          │
          ▼
   ┌──────────────┐
-  │    Concat    │  8 latent + 14 raw features = 22 final features
+  │    Concat    │  8 SSAE latent + 14 domain features → 22 final features
   └──────┬───────┘
          │
     ┌────┴─────┐
@@ -50,17 +51,18 @@
 
 ### Stage 1 — Default Prediction
 
-| Model | Role |
+| Model | Type |
 |-------|------|
 | Logistic Regression | Baseline |
-| LightGBM | Gradient boosting |
-| XGBoost | Gradient boosting |
+| LightGBM / XGBoost | Gradient boosting |
 | Random Forest | Bagging ensemble |
 | SVM | Support vector |
 
-### Stage 2 — Moral Hazard Detection
+All models are grid-searched and ranked by **portfolio annualized return**, not just F1 or accuracy.
 
-Detects borrowers who repay 70%+ of term before defaulting — a costlier, harder-to-catch pattern.
+### Stage 2 — Moral Hazard
+
+Identifies borrowers who repay 70%+ of their term before defaulting — a pattern that is harder to detect and costlier for lenders than early defaults.
 
 ---
 
@@ -68,27 +70,45 @@ Detects borrowers who repay 70%+ of term before defaulting — a costlier, harde
 
 | Topic | Detail |
 |-------|--------|
-| **SSAE** | 3-layer denoising autoencoder, ReLU, 10K epochs, noise factor 0.2 |
-| **Class Imbalance** | 83% non-default / 17% default — random undersampling applied |
-| **Objective Function** | `LoanAnalysis` class: money-weighted annualized return per portfolio |
-| **Explainability** | SHAP values for every model |
-| **Feature Selection** | 14 domain features (FICO, DTI, income, etc.) kept alongside SSAE output |
+| **SSAE** | 3-layer denoising autoencoder (ReLU, 10K epochs, noise factor 0.2) |
+| **Class Imbalance** | 83/17 split — addressed with random undersampling |
+| **Objective Function** | `LoanAnalysis` class computes money-weighted annualized return across TN/FP/FN/TP |
+| **Explainability** | SHAP values computed for every model |
+| **Feature Engineering** | 14 domain-selected features (FICO, DTI, income, etc.) preserved alongside SSAE latent output |
 
 ---
 
-## Project Structure
+## Notebooks
 
-```
-notebooks/
-├── 00_ssae_tutorial.ipynb       # SSAE tutorial on toy dataset
-├── 01_data_preprocessing.ipynb  # Data cleaning and feature engineering
-├── 02_ssae_baseline.ipynb       # SSAE + classifier base pipeline
-├── 03_model_experiment.ipynb    # Full experiment with 5 classifiers
-├── 04_two_stage_model.ipynb     # Final: two-stage model + objective fn
-└── objective_fn/
-    └── portfolio_return.ipynb   # Portfolio annualized return calculator
-data/                            # Lending Club CSVs (not tracked)
-```
+| # | Notebook | Description |
+|---|----------|-------------|
+| 0 | `00_ssae_tutorial.ipynb` | SSAE walkthrough on a toy dataset |
+| 1 | `01_data_preprocessing.ipynb` | Raw data cleaning, feature engineering, export |
+| 2 | `02_ssae_baseline.ipynb` | End-to-end SSAE + classifier pipeline |
+| 3 | `03_model_experiment.ipynb` | Grid search across 5 classifiers |
+| 4 | `04_two_stage_model.ipynb` | **Final model** — two-stage prediction with portfolio objective |
+| - | `objective_fn/portfolio_return.ipynb` | Portfolio annualized return calculator |
+
+---
+
+## Discussion
+
+### ML
+
+| Observation | Detail |
+|-------------|--------|
+| **Proxy ≠ true objective** | Models ranked by F1 don't necessarily rank the same by portfolio return — the "best" model depends on which metric you trust |
+| **Opaque learned features** | SSAE latent dims (`e0`–`e7`) are useful for prediction but uninterpretable; we keep 14 domain features alongside them as an interpretable anchor |
+| **Undersampling cost** | Rebalancing 83/17 → 50/50 improves default recall but discards majority-class information, risking miscalibration in deployment |
+
+### AI Safety
+
+| Observation | Detail |
+|-------------|--------|
+| **Objective alignment** | Optimizing accuracy led to models that approve bad loans; switching to portfolio return better aligned the model with the actual goal — designing the right objective was harder than building the model |
+| **Interpretability gap** | SHAP explains *which* features matter, but "latent dim e3 was important" tells a borrower or regulator nothing — a practical limit of post-hoc explainability on learned representations |
+| **Shifted incentives** | Moral hazard (Stage 2) models borrowers whose behavior changes over time — repaying normally, then defaulting late — analogous to agents adapting under different incentive structures |
+| **Unresolved fairness** | `addr_state` and `home_ownership` may proxy for protected attributes; optimizing return could deny credit to groups whose higher default rates reflect systemic inequality, not individual risk |
 
 ---
 
@@ -98,4 +118,4 @@ data/                            # Lending Club CSVs (not tracked)
 pip install -r requirements.txt
 ```
 
-Place `LC_Data_Cleaned_0829.csv` in `data/`, then run notebooks in order.
+Place the Lending Club dataset in `data/`, then run notebooks in order (`00` → `04`).
