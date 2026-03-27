@@ -80,14 +80,14 @@ Detects borrowers who repay 70%+ of term before defaulting — a costlier, harde
 
 ```
 notebooks/
-├── SSAE_Sample.ipynb                          # SSAE tutorial (toy dataset)
-├── LendingClub_Cleaning_mod.ipynb             # Data preprocessing
-├── Lending_Club_SSAE.ipynb                    # Base pipeline
-├── Lending_Club_SSAE-BB-1000-JPark_0903.ipynb # Full experiment (5 classifiers)
-├── Lending_Club_SSAE-BB-1000_JS_0902.ipynb    # Final: two-stage + objective fn
+├── 00_ssae_tutorial.ipynb       # SSAE tutorial on toy dataset
+├── 01_data_preprocessing.ipynb  # Data cleaning and feature engineering
+├── 02_ssae_baseline.ipynb       # SSAE + classifier base pipeline
+├── 03_model_experiment.ipynb    # Full experiment with 5 classifiers
+├── 04_two_stage_model.ipynb     # Final: two-stage model + objective fn
 └── objective_fn/
-    └── objective_fn_modified.ipynb             # Portfolio return calculator
-data/                                          # CSVs (not tracked)
+    └── portfolio_return.ipynb   # Portfolio annualized return calculator
+data/                            # Lending Club CSVs (not tracked)
 ```
 
 ---
