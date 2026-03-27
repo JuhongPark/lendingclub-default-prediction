@@ -95,7 +95,7 @@ data/                            # Lending Club CSVs (not tracked)
 ## Quick Start
 
 ```bash
-pip install torch scikit-learn shap xgboost lightgbm imbalanced-learn
+pip install -r requirements.txt
 ```
 
 Place `LC_Data_Cleaned_0829.csv` in `data/`, then run notebooks in order.
