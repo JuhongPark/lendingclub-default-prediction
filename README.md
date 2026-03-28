@@ -93,24 +93,28 @@ Identifies borrowers who repay 70%+ of their term before defaulting — a patter
 
 ## Discussion
 
-### ML
+> **No single metric replaces reality.**
+> A technically strong model can still lose money, exclude creditworthy borrowers, or satisfy regulators on paper while hiding risk in opaque features.
+> This project demonstrates that evaluation must span technical performance, business impact, and societal fairness — and that each layer reveals blind spots the others miss.
+
+### ML — Technical metrics alone are not enough
 
 | Observation | Detail |
 |-------------|--------|
-| **Proxy ≠ true objective** | F1 ranking and portfolio return ranking diverge. `LoanAnalysis` assigns distinct revenue per confusion matrix cell (TN: total payments received, FN: net loss after recovery, TP/FP: treasury bond opportunity cost), so a classifier with strong F1 can still approve the costliest defaults |
-| **Hybrid feature space** | 8 SSAE latent dims are concatenated with 14 domain features (FICO, DTI, income, etc.) — SHAP can then attribute predictions to both learned and human-readable features, keeping regulatory explainability viable |
+| **Metric ≠ business outcome** | F1 ranking and portfolio return ranking diverge. `LoanAnalysis` prices each confusion matrix cell differently (TN: total payments received, FN: net loss after recovery, TP/FP: treasury bond opportunity cost) — a high-F1 model can still approve the costliest defaults because F1 treats all errors equally while the business does not |
+| **Hybrid feature space** | 8 SSAE latent dims concatenated with 14 domain features (FICO, DTI, income, etc.) — SHAP can attribute predictions to both learned and human-readable features, keeping regulatory explainability viable alongside predictive power |
 | **Multi-explainer SHAP** | `LinearExplainer` for logistic regression, `TreeExplainer` for tree ensembles, `KernelExplainer` for SSAE-wrapped pipelines — matched per model family for consistent interpretability |
-| **Undersampling cost** | 83/17 → 50/50 rebalancing improves default recall at the cost of majority-class information, risking miscalibrated precision in deployment |
+| **Undersampling cost** | 83/17 → 50/50 rebalancing improves default recall but discards majority-class information — better sensitivity to defaults, worse precision on good loans, a trade-off invisible to recall alone |
 
-### AI Safety
+### AI Safety — Beyond technical performance to real-world impact
 
 | Observation | Detail |
 |-------------|--------|
-| **Objective alignment** | Accuracy optimization approved bad loans; portfolio return aligns the model with lender economics by pricing each outcome differently (opportunity cost vs. net loss after recovery) — designing the right objective was harder than building the model |
-| **Interpretability gap** | The best predictors (autoencoder latent dims) resist explanation; the explainable features (FICO, DTI) are weaker alone — "latent dim e3 was important" tells a regulator nothing |
-| **Shifted incentives** | Stage 2 targets borrowers who complete ≥70% of their term before defaulting — costlier (less principal recovered, longer capital lock-up) and harder to detect, analogous to agents adapting behavior under changed incentive structures |
-| **Unresolved fairness** | `addr_state` and `home_ownership` are not used directly but compressed into SSAE latent dims, where they can still proxy for protected attributes — a return-maximizing objective can amplify systemic disparities without explicit disparate impact auditing |
-| **Dual-use of credit AI** | The same model that shields lenders from bad loans decides who gets funded — objective function and fairness constraint choices are societal design decisions, not just technical ones |
+| **Objective alignment** | Accuracy optimization approved bad loans; portfolio return corrects this by pricing outcomes differently — but even portfolio return is a lender-side proxy that says nothing about borrower welfare. Designing the right objective was harder than building the model, and no single objective fully captures real-world impact |
+| **Interpretability vs. predictive power** | The best predictors (autoencoder latent dims) resist explanation; the explainable features (FICO, DTI) are weaker alone — "latent dim e3 was important" tells a regulator nothing. Technical accuracy and human accountability pull in opposite directions |
+| **Shifted incentives** | Stage 2 targets borrowers who complete ≥70% of their term before defaulting — costlier (less principal recovered, longer capital lock-up) and harder to detect. Standard metrics miss these late-stage patterns because they weight all defaults equally |
+| **Fairness gap** | `addr_state` and `home_ownership` are compressed into SSAE latent dims, where they can still proxy for protected attributes — a return-maximizing objective can amplify systemic disparities, and no technical metric in the pipeline audits for this |
+| **Dual-use of credit AI** | The same model that shields lenders from bad loans decides who gets funded — optimizing any single metric (accuracy, F1, or even portfolio return) without fairness constraints risks turning a technical success into a societal failure |
 
 ---
 
