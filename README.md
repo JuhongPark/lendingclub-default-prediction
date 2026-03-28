@@ -97,18 +97,20 @@ Identifies borrowers who repay 70%+ of their term before defaulting — a patter
 
 | Observation | Detail |
 |-------------|--------|
-| **Proxy ≠ true objective** | Models ranked by F1 don't necessarily rank the same by portfolio return — the "best" model depends on which metric you trust |
-| **Opaque learned features** | SSAE latent dims (`e0`–`e7`) are useful for prediction but uninterpretable; we keep 14 domain features alongside them as an interpretable anchor |
-| **Undersampling cost** | Rebalancing 83/17 → 50/50 improves default recall but discards majority-class information, risking miscalibration in deployment |
+| **Proxy ≠ true objective** | F1 ranking and portfolio return ranking diverge. `LoanAnalysis` assigns distinct revenue per confusion matrix cell (TN: total payments received, FN: net loss after recovery, TP/FP: treasury bond opportunity cost), so a classifier with strong F1 can still approve the costliest defaults |
+| **Hybrid feature space** | 8 SSAE latent dims are concatenated with 14 domain features (FICO, DTI, income, etc.) — SHAP can then attribute predictions to both learned and human-readable features, keeping regulatory explainability viable |
+| **Multi-explainer SHAP** | `LinearExplainer` for logistic regression, `TreeExplainer` for tree ensembles, `KernelExplainer` for SSAE-wrapped pipelines — matched per model family for consistent interpretability |
+| **Undersampling cost** | 83/17 → 50/50 rebalancing improves default recall at the cost of majority-class information, risking miscalibrated precision in deployment |
 
 ### AI Safety
 
 | Observation | Detail |
 |-------------|--------|
-| **Objective alignment** | Optimizing accuracy led to models that approve bad loans; switching to portfolio return better aligned the model with the actual goal — designing the right objective was harder than building the model |
-| **Interpretability gap** | SHAP explains *which* features matter, but "latent dim e3 was important" tells a borrower or regulator nothing — a practical limit of post-hoc explainability on learned representations |
-| **Shifted incentives** | Moral hazard (Stage 2) models borrowers whose behavior changes over time — repaying normally, then defaulting late — analogous to agents adapting under different incentive structures |
-| **Unresolved fairness** | `addr_state` and `home_ownership` may proxy for protected attributes; optimizing return could deny credit to groups whose higher default rates reflect systemic inequality, not individual risk |
+| **Objective alignment** | Accuracy optimization approved bad loans; portfolio return aligns the model with lender economics by pricing each outcome differently (opportunity cost vs. net loss after recovery) — designing the right objective was harder than building the model |
+| **Interpretability gap** | The best predictors (autoencoder latent dims) resist explanation; the explainable features (FICO, DTI) are weaker alone — "latent dim e3 was important" tells a regulator nothing |
+| **Shifted incentives** | Stage 2 targets borrowers who complete ≥70% of their term before defaulting — costlier (less principal recovered, longer capital lock-up) and harder to detect, analogous to agents adapting behavior under changed incentive structures |
+| **Unresolved fairness** | `addr_state` and `home_ownership` are not used directly but compressed into SSAE latent dims, where they can still proxy for protected attributes — a return-maximizing objective can amplify systemic disparities without explicit disparate impact auditing |
+| **Dual-use of credit AI** | The same model that shields lenders from bad loans decides who gets funded — objective function and fairness constraint choices are societal design decisions, not just technical ones |
 
 ---
 
